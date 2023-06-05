@@ -1127,30 +1127,33 @@ if (!String.prototype.trim) {
 
                 // Non-default binding used to avoid situations when some code in external js
                 // stopping events propagation, eg. returns false, and our handler will never called
-                $(document).onFirst('mouseover', triggers.join(','), function () {
+                document.addEventListener('mouseover', function(event) {
+                    var matchedElements = Array.from(document.querySelectorAll(triggers));
+                    if (matchedElements.includes(event.target)) {
+                        if (event.target.classList.contains('pys-mouse-over-' + eventId)) {
+                            return true;
+                        } else {
+                            event.target.classList.add('pys-mouse-over-' + eventId);
+                        }
 
-                    // do not fire event multiple times
-                    if ($(this).hasClass('pys-mouse-over-' + eventId)) {
-                        return true;
-                    } else {
-                        $(this).addClass('pys-mouse-over-' + eventId);
+                        Utils.fireTriggerEvent(eventId);
                     }
-
-                    Utils.fireTriggerEvent(eventId);
-
                 });
+
 
             },
 
             setupCSSClickEvents: function (eventId, triggers) {
-
                 // Non-default binding used to avoid situations when some code in external js
                 // stopping events propagation, eg. returns false, and our handler will never called
                 // add event to document to support dyn class
-                $(document).onFirst('click', triggers.join(','), function () {
-                    Utils.fireTriggerEvent(eventId);
-                });
-
+                document.addEventListener('click', function(event) {
+                    var matchedElements = Array.from(document.querySelectorAll(triggers));
+                    if (matchedElements.includes(event.target)) {
+                        console.log(event.target)
+                        Utils.fireTriggerEvent(eventId);
+                    }
+                }, true);
             },
 
             setupURLClickEvents: function () {
@@ -1160,20 +1163,20 @@ if (!String.prototype.trim) {
                 }
                 // Non-default binding used to avoid situations when some code in external js
                 // stopping events propagation, eg. returns false, and our handler will never called
-                $('a').onFirst('click', function (evt) {
-
-                    var url  = $(this).attr('href');
-                    if(url) {
-                        $.each(options.triggerEventTypes.url_click, function (eventId, triggers) {
-                            triggers.forEach(function (trigger) {
-                                if(Utils.compareUrl(url,trigger.value,trigger.rule)) {
-                                    Utils.fireTriggerEvent(eventId);
-                                }
-                            })
-                        });
+                document.addEventListener('click', function(event) {
+                    if (event.target.matches('a')) {
+                        var url = event.target.getAttribute('href');
+                        if (url) {
+                            Object.entries(options.triggerEventTypes.url_click).forEach(function ([eventId, triggers]) {
+                                triggers.forEach(function (trigger) {
+                                    if (Utils.compareUrl(url, trigger.value, trigger.rule)) {
+                                        Utils.fireTriggerEvent(eventId);
+                                    }
+                                });
+                            });
+                        }
                     }
-
-                });
+                }, true);
 
             },
 
@@ -1564,7 +1567,7 @@ if (!String.prototype.trim) {
                                     } else {
                                         return false;
                                     }
-                                } else if ( categoryCookie === CS_Data.cs_script_cat.gads && pixel == 'gads' ) {
+                                } else if ( categoryCookie === CS_Data.cs_script_cat.gads && pixel == 'google_ads' ) {
                                     if ( cs_cookie_val == 'yes' ) {
                                         return true;
                                     } else {
@@ -1854,7 +1857,7 @@ if (!String.prototype.trim) {
              * Enrich
              */
             isCheckoutPage: function () {
-                return $('body').hasClass('woocommerce-checkout') ||
+                return $('body').hasClass('woocommerce-checkout') || document.querySelector('.woocommerce-checkout') ||
                     $('body').hasClass('edd-checkout');
             },
             addCheckoutFields : function() {
@@ -4483,212 +4486,212 @@ if (!String.prototype.trim) {
                     }
                 }
             });
-            document.addEventListener( 'wpcf7mailsent', function( event ) {
-                var form_id = event.detail.contactFormId;
-                var sendEventId = null;
-                var disabled_form_action = false;
-                if(options.triggerEventTypes.hasOwnProperty('CF7'))
-                {
-                    key_event = Object.keys(options.triggerEventTypes.CF7)[0];
-                    if(options.triggerEventTypes.CF7[key_event].hasOwnProperty('disabled_form_action'))
-                    {
-                        disabled_form_action = options.triggerEventTypes.CF7[key_event].disabled_form_action;
-                    }
-                    $.each(options.triggerEventTypes.CF7, function (eventId, triggers) {
-                        $.each(triggers.forms, function (index, value) {
-                            if(value == form_id) {
-                                sendEventId=eventId;
-                            };
-                        });
-                    });
-                }
-                if(sendEventId != null)
-                {
-                    Utils.fireTriggerEvent(sendEventId);
 
-                    if(!disabled_form_action)
-                    {
-                        sendFormAction($(event.target), form_id);
-                    }
-                }
-                else {
-                    sendFormAction($(event.target), form_id);
-                }
-            }, false );
-            //Forminator
-            $(document).on( 'forminator:form:submit:success', function( event ){
-                var form_id = $(event.target).find('input[name="form_id"]').val();
-                var sendEventId = null;
-                var disabled_form_action = false;
-                if(options.triggerEventTypes.hasOwnProperty('forminator'))
-                {
-                    key_event = Object.keys(options.triggerEventTypes.forminator)[0];
-                    if(options.triggerEventTypes.forminator[key_event].hasOwnProperty('disabled_form_action'))
-                    {
-                        disabled_form_action = options.triggerEventTypes.forminator[key_event].disabled_form_action;
-                    }
-                    $.each(options.triggerEventTypes.forminator, function (eventId, triggers) {
-                        $.each(triggers.forms, function (index, value) {
-                            if(value == form_id) {
-                                sendEventId=eventId;
-                            };
-                        });
-                    });
-                }
-                if(sendEventId != null)
-                {
-                    Utils.fireTriggerEvent(sendEventId);
-
-                    if(!disabled_form_action)
-                    {
-                        sendFormAction($(event.target), form_id);
-                    }
-                }
-                else {
-                    sendFormAction($(event.target), form_id);
-                }
-
-            });
-
-            //WPForm
-            $('form.wpforms-form').on('wpformsAjaxSubmitSuccess', (event) => {
-                var form_id = $(event.target).attr('data-formid');
-                var sendEventId = null;
-                var disabled_form_action = false;
-                if(options.triggerEventTypes.hasOwnProperty('wpforms'))
-                {
-                    key_event = Object.keys(options.triggerEventTypes.wpforms)[0];
-                    if(options.triggerEventTypes.wpforms[key_event].hasOwnProperty('disabled_form_action'))
-                    {
-                        disabled_form_action = options.triggerEventTypes.wpforms[key_event].disabled_form_action;
-                    }
-                    $.each(options.triggerEventTypes.wpforms, function (eventId, triggers) {
-                        $.each(triggers.forms, function (index, value) {
-                            if(value == form_id) {
-                                sendEventId=eventId;
-                            };
-                        });
-                    });
-                }
-                if(sendEventId != null)
-                {
-                    Utils.fireTriggerEvent(sendEventId);
-
-                    if(!disabled_form_action)
-                    {
-                        sendFormAction($(event.target), form_id);
-                    }
-                }
-                else {
-                    sendFormAction($(event.target), form_id);
-                }
-            })
-            $(document).on( 'frmFormComplete', function( event, form, response ) {
-                const form_id = $(form).find('input[name="form_id"]').val();
-                var sendEventId = null;
-                var disabled_form_action = false;
-                if(options.triggerEventTypes.hasOwnProperty('formidable'))
-                {
-                    key_event = Object.keys(options.triggerEventTypes.formidable)[0];
-                    if(options.triggerEventTypes.formidable[key_event].hasOwnProperty('disabled_form_action'))
-                    {
-                        disabled_form_action = options.triggerEventTypes.formidable[key_event].disabled_form_action;
-                    }
-                    $.each(options.triggerEventTypes.formidable, function (eventId, triggers) {
-                        $.each(triggers.forms, function (index, value) {
-                            if(value == form_id) {
-                                sendEventId=eventId;
-                            };
-                        });
-                    });
-                }
-                if(sendEventId != null)
-                {
-                    Utils.fireTriggerEvent(sendEventId);
-
-                    if(!disabled_form_action)
-                    {
-                        sendFormAction($(event.target), form_id);
-                    }
-                }
-                else {
-                    sendFormAction($(event.target), form_id);
-                }
-            });
-            // Ninja Forms
-            $(document).onFirst('nfFormSubmitResponse', function (event, data) {
-                const form_id = data.response.data.form_id;
-                var sendEventId = null;
-                var disabled_form_action = false;
-                if(options.triggerEventTypes.hasOwnProperty('ninjaform'))
-                {
-                    key_event = Object.keys(options.triggerEventTypes.ninjaform)[0];
-                    if(options.triggerEventTypes.ninjaform[key_event].hasOwnProperty('disabled_form_action'))
-                    {
-                        disabled_form_action = options.triggerEventTypes.ninjaform[key_event].disabled_form_action;
-                    }
-                    $.each(options.triggerEventTypes.ninjaform, function (eventId, triggers) {
-                        $.each(triggers.forms, function (index, value) {
-                            if(value == form_id) {
-                                sendEventId=eventId;
-                            };
-                        });
-                    });
-                }
-                if(sendEventId != null)
-                {
-                    Utils.fireTriggerEvent(sendEventId);
-
-                    if(!disabled_form_action)
-                    {
-                        sendFormAction($(event.target), form_id);
-                    }
-                }
-                else {
-                    sendFormAction($(event.target), form_id);
-                }
-            });
-
-            var fluentForms = $('form.frm-fluent-form');
-            fluentForms.each(function() {
-                var $form = $(this);
-                $form.on('fluentform_submission_success', function(event) {
-                    var $formItem = $(this);
-                    var form_id = $formItem.attr('data-form_id');
-                    var sendEventId = null;
-                    var disabled_form_action = false;
-                    if(options.triggerEventTypes.hasOwnProperty('fluentform'))
-                    {
-                        key_event = Object.keys(options.triggerEventTypes.fluentform)[0];
-                        if(options.triggerEventTypes.fluentform[key_event].hasOwnProperty('disabled_form_action'))
-                        {
-                            disabled_form_action = options.triggerEventTypes.fluentform[key_event].disabled_form_action;
-                        }
-                        $.each(options.triggerEventTypes.fluentform, function (eventId, triggers) {
-                            $.each(triggers.forms, function (index, value) {
-                                if(value == form_id) {
-                                    sendEventId=eventId;
-                                };
-                            });
-                        });
-                    }
-                    if(sendEventId != null)
-                    {
-                        Utils.fireTriggerEvent(sendEventId);
-
-                        if(!disabled_form_action)
-                        {
-                            sendFormAction($(event.target), form_id);
-                        }
-                    }
-                    else {
-                        sendFormAction($(event.target), form_id);
-                    }
-                });
-            });
 
         }
+        document.addEventListener( 'wpcf7mailsent', function( event ) {
+            var form_id = event.detail.contactFormId;
+            var sendEventId = null;
+            var disabled_form_action = false;
+            if(options.triggerEventTypes.hasOwnProperty('CF7'))
+            {
+                key_event = Object.keys(options.triggerEventTypes.CF7)[0];
+                if(options.triggerEventTypes.CF7[key_event].hasOwnProperty('disabled_form_action'))
+                {
+                    disabled_form_action = options.triggerEventTypes.CF7[key_event].disabled_form_action;
+                }
+                $.each(options.triggerEventTypes.CF7, function (eventId, triggers) {
+                    $.each(triggers.forms, function (index, value) {
+                        if(value == form_id) {
+                            sendEventId=eventId;
+                        };
+                    });
+                });
+            }
+            if(sendEventId != null)
+            {
+                Utils.fireTriggerEvent(sendEventId);
 
+                if(!disabled_form_action)
+                {
+                    sendFormAction($(event.target), form_id);
+                }
+            }
+            else {
+                sendFormAction($(event.target), form_id);
+            }
+        }, false );
+        //Forminator
+        $(document).on( 'forminator:form:submit:success', function( event ){
+            var form_id = $(event.target).find('input[name="form_id"]').val();
+            var sendEventId = null;
+            var disabled_form_action = false;
+            if(options.triggerEventTypes.hasOwnProperty('forminator'))
+            {
+                key_event = Object.keys(options.triggerEventTypes.forminator)[0];
+                if(options.triggerEventTypes.forminator[key_event].hasOwnProperty('disabled_form_action'))
+                {
+                    disabled_form_action = options.triggerEventTypes.forminator[key_event].disabled_form_action;
+                }
+                $.each(options.triggerEventTypes.forminator, function (eventId, triggers) {
+                    $.each(triggers.forms, function (index, value) {
+                        if(value == form_id) {
+                            sendEventId=eventId;
+                        };
+                    });
+                });
+            }
+            if(sendEventId != null)
+            {
+                Utils.fireTriggerEvent(sendEventId);
+
+                if(!disabled_form_action)
+                {
+                    sendFormAction($(event.target), form_id);
+                }
+            }
+            else {
+                sendFormAction($(event.target), form_id);
+            }
+
+        });
+
+        //WPForm
+        $('form.wpforms-form').on('wpformsAjaxSubmitSuccess', (event) => {
+            var form_id = $(event.target).attr('data-formid');
+            var sendEventId = null;
+            var disabled_form_action = false;
+            if(options.triggerEventTypes.hasOwnProperty('wpforms'))
+            {
+                key_event = Object.keys(options.triggerEventTypes.wpforms)[0];
+                if(options.triggerEventTypes.wpforms[key_event].hasOwnProperty('disabled_form_action'))
+                {
+                    disabled_form_action = options.triggerEventTypes.wpforms[key_event].disabled_form_action;
+                }
+                $.each(options.triggerEventTypes.wpforms, function (eventId, triggers) {
+                    $.each(triggers.forms, function (index, value) {
+                        if(value == form_id) {
+                            sendEventId=eventId;
+                        };
+                    });
+                });
+            }
+            if(sendEventId != null)
+            {
+                Utils.fireTriggerEvent(sendEventId);
+
+                if(!disabled_form_action)
+                {
+                    sendFormAction($(event.target), form_id);
+                }
+            }
+            else {
+                sendFormAction($(event.target), form_id);
+            }
+        })
+        $(document).on( 'frmFormComplete', function( event, form, response ) {
+            const form_id = $(form).find('input[name="form_id"]').val();
+            var sendEventId = null;
+            var disabled_form_action = false;
+            if(options.triggerEventTypes.hasOwnProperty('formidable'))
+            {
+                key_event = Object.keys(options.triggerEventTypes.formidable)[0];
+                if(options.triggerEventTypes.formidable[key_event].hasOwnProperty('disabled_form_action'))
+                {
+                    disabled_form_action = options.triggerEventTypes.formidable[key_event].disabled_form_action;
+                }
+                $.each(options.triggerEventTypes.formidable, function (eventId, triggers) {
+                    $.each(triggers.forms, function (index, value) {
+                        if(value == form_id) {
+                            sendEventId=eventId;
+                        };
+                    });
+                });
+            }
+            if(sendEventId != null)
+            {
+                Utils.fireTriggerEvent(sendEventId);
+
+                if(!disabled_form_action)
+                {
+                    sendFormAction($(event.target), form_id);
+                }
+            }
+            else {
+                sendFormAction($(event.target), form_id);
+            }
+        });
+        // Ninja Forms
+        $(document).onFirst('nfFormSubmitResponse', function (event, data) {
+            const form_id = data.response.data.form_id;
+            var sendEventId = null;
+            var disabled_form_action = false;
+            if(options.triggerEventTypes.hasOwnProperty('ninjaform'))
+            {
+                key_event = Object.keys(options.triggerEventTypes.ninjaform)[0];
+                if(options.triggerEventTypes.ninjaform[key_event].hasOwnProperty('disabled_form_action'))
+                {
+                    disabled_form_action = options.triggerEventTypes.ninjaform[key_event].disabled_form_action;
+                }
+                $.each(options.triggerEventTypes.ninjaform, function (eventId, triggers) {
+                    $.each(triggers.forms, function (index, value) {
+                        if(value == form_id) {
+                            sendEventId=eventId;
+                        };
+                    });
+                });
+            }
+            if(sendEventId != null)
+            {
+                Utils.fireTriggerEvent(sendEventId);
+
+                if(!disabled_form_action)
+                {
+                    sendFormAction($(event.target), form_id);
+                }
+            }
+            else {
+                sendFormAction($(event.target), form_id);
+            }
+        });
+
+        var fluentForms = $('form.frm-fluent-form');
+        fluentForms.each(function() {
+            var $form = $(this);
+            $form.on('fluentform_submission_success', function(event) {
+                var $formItem = $(this);
+                var form_id = $formItem.attr('data-form_id');
+                var sendEventId = null;
+                var disabled_form_action = false;
+                if(options.triggerEventTypes.hasOwnProperty('fluentform'))
+                {
+                    key_event = Object.keys(options.triggerEventTypes.fluentform)[0];
+                    if(options.triggerEventTypes.fluentform[key_event].hasOwnProperty('disabled_form_action'))
+                    {
+                        disabled_form_action = options.triggerEventTypes.fluentform[key_event].disabled_form_action;
+                    }
+                    $.each(options.triggerEventTypes.fluentform, function (eventId, triggers) {
+                        $.each(triggers.forms, function (index, value) {
+                            if(value == form_id) {
+                                sendEventId=eventId;
+                            };
+                        });
+                    });
+                }
+                if(sendEventId != null)
+                {
+                    Utils.fireTriggerEvent(sendEventId);
+
+                    if(!disabled_form_action)
+                    {
+                        sendFormAction($(event.target), form_id);
+                    }
+                }
+                else {
+                    sendFormAction($(event.target), form_id);
+                }
+            });
+        });
         // load pixel APIs
         Utils.loadPixels();
 
@@ -4706,23 +4709,17 @@ if (!String.prototype.trim) {
          */
         var consentApi = window.consentApi;
         if (consentApi && options.gdpr.real_cookie_banner_integration_enabled) {
-            if (options.automatic.enable_youtube
-
-            ) {
+            if (options.automatic.enable_youtube && options.enable_event_video && options.enable_automatic_events) {
                 window.consentApi.consent("http", "CONSENT", ".youtube.com").then(Utils.initYouTubeAPI);
             }
-            if (options.automatic.enable_vimeo
-
-            ) {
+            if (options.automatic.enable_vimeo && options.enable_event_video && options.enable_automatic_events) {
                 window.consentApi.consent("http", "player", ".vimeo.com").then(Utils.initVimeoAPI);
             }
         }else{
-            if (options.automatic.enable_youtube
-            ) {
+            if (options.automatic.enable_youtube && options.enable_event_video && options.enable_automatic_events) {
                 Utils.initYouTubeAPI();
             }
-            if (options.automatic.enable_vimeo
-            ) {
+            if (options.automatic.enable_vimeo && options.enable_event_video && options.enable_automatic_events) {
                 Utils.initVimeoAPI();
             }
         }
